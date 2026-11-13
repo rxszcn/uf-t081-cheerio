@@ -58,6 +58,63 @@ describe('cheerio', () => {
     });
   });
 
+  describe('template elements', () => {
+    const templateMarkup =
+      '<div><template id="t"><span class="slot">inner</span></template><p>after</p></div>';
+    const documentMarkup = `<html><head></head><body>${templateMarkup}</body></html>`;
+
+    it('should preserve templates and their contents when serializing a document', () => {
+      const $ = cheerio.load(templateMarkup);
+      expect($('template')).toHaveLength(1);
+      expect($.html()).toBe(documentMarkup);
+    });
+
+    it('should preserve templates and their contents when serializing a fragment', () => {
+      const $ = cheerio.load(templateMarkup, null, false);
+      expect($('template')).toHaveLength(1);
+      expect($.html()).toBe(templateMarkup);
+    });
+
+    it('should not detach template contents when reading `.html()`', () => {
+      const $ = cheerio.load(templateMarkup);
+
+      // Reading the inner HTML must not mutate the tree.
+      expect($('template').html()).toBe('<span class="slot">inner</span>');
+      expect($('template').html()).toBe('<span class="slot">inner</span>');
+
+      // The template is still selectable and serializes in full.
+      expect($('template')).toHaveLength(1);
+      expect($.html()).toBe(documentMarkup);
+    });
+
+    it('should not detach template contents when reading `innerHTML`/`outerHTML` props', () => {
+      const $ = cheerio.load(templateMarkup);
+
+      expect($('template').prop('innerHTML')).toBe(
+        '<span class="slot">inner</span>',
+      );
+      expect($('template').prop('outerHTML')).toBe(
+        '<template id="t"><span class="slot">inner</span></template>',
+      );
+
+      expect($('template')).toHaveLength(1);
+      expect($.html()).toBe(documentMarkup);
+    });
+
+    it('should round-trip templates through `parseHTML`', () => {
+      const $ = cheerio.load('');
+      const nodes = $.parseHTML('<template><b>x</b></template>');
+      expect(nodes).toHaveLength(1);
+      expect($.html(nodes[0])).toBe('<template><b>x</b></template>');
+    });
+
+    it('should serialize templates as regular elements in XML mode', () => {
+      const $ = cheerio.load(templateMarkup, { xml: true });
+      expect($('template')).toHaveLength(1);
+      expect($.xml()).toBe(templateMarkup);
+    });
+  });
+
   describe('.text', () => {
     it('(cheerio object) : should return the text contents of the specified elements', () => {
       const $ = cheerio.load('<a>This is <em>content</em>.</a>');

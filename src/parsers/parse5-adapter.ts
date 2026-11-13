@@ -47,8 +47,20 @@ export function renderWithParse5(dom: AnyNode | ArrayLike<AnyNode>): string {
    * `dom-serializer` passes over the special "root" node and renders the
    * node's children in its place. To mimic this behavior with `parse5`, an
    * equivalent operation must be applied to the input array.
+   *
+   * The input is copied first: callers may pass a live `children` array
+   * (e.g. `.html()` renders `el.children`), and splicing a `<template>`'s
+   * content fragment out of the live array would detach the template's
+   * contents from the tree.
    */
-  const nodes = 'length' in dom ? dom : [dom];
+  const nodes: AnyNode[] = [];
+  if ('length' in dom) {
+    for (let index = 0; index < dom.length; index += 1) {
+      nodes.push(dom[index]);
+    }
+  } else {
+    nodes.push(dom);
+  }
   for (let index = 0; index < nodes.length; index += 1) {
     const node = nodes[index];
     if (isDocument(node)) {
